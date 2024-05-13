@@ -3,6 +3,7 @@
 #include <string>
 
 #include "Reflection.h"
+#include "MemberFunction.h"
 
 struct AggregateStruct
 {
@@ -16,6 +17,11 @@ private:
     int a = 3;
     float m_megaSuperMember = 5.65f;
     std::string c = "val";
+
+    void fun()
+    {
+
+    }
 
 public:
     // custom-provided info about struct
@@ -31,9 +37,29 @@ public:
 
 struct AggregateStruct3
 {
+private:
     int a = 3;
     const float m_superMember = 3.14f;
     std::string m_megaMember = "val";
+
+    void fun(const std::string& str)
+    {
+        std::cout << str << std::endl;
+    }
+
+    member_func_t<&AggregateStruct3::fun> function = bindFunction<&AggregateStruct3::fun>(this);
+
+public:
+    // custom-provided info about struct
+    struct info
+    {
+        static constexpr auto value = std::tuple(
+                &AggregateStruct3::a,
+                &AggregateStruct3::m_superMember,
+                &AggregateStruct3::m_megaMember,
+                &AggregateStruct3::function
+        );
+    };
 };
 
 int main()
@@ -45,18 +71,21 @@ int main()
     // runtime meta
     auto runtimeMeta = meta.asRuntime();
 
-    runtimeMeta.members[2].setValue<std::string>("changed by runtime reflection");
+    runtimeMeta.findMember("m_megaMember")->setValue<std::string>("changed by runtime reflection");
 
-    std::cout << "isconst: " << runtimeMeta.members[2].is_const << std::endl;
+    std::cout << "isconst: " << runtimeMeta.members[3].is_const << std::endl;
 
-    auto& memberInfo = meta.get<2>();
+    auto& memberInfo = meta.get<3>();
 
-    // memberInfo.value = "changed by compile-time reflection";
+    memberInfo.value("hello from compile-time reflected function");
+
+    auto* foundMember = runtimeMeta.findMember("function");
+    (*foundMember->getValue<MemberFunction<void(const std::string&)>>())("hello from runtime reflected function");
 
     std::cout <<
     "\tmember type name: " << memberInfo.unmangled_type_name << ",\n" <<
     "\tindex in class: " << memberInfo.index << ",\n" <<
-    "\tvalue: " << memberInfo.value << ",\n" <<
+    // "\tvalue: " << memberInfo.value << ",\n" <<
     "\tis const: " << memberInfo.is_const << ",\n" <<
     "\tis volatile: " << memberInfo.is_volatile << ",\n" <<
     "\tis pointer: " << memberInfo.is_pointer << ",\n" <<

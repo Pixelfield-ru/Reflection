@@ -3,4 +3,4 @@ project(Reflection)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(Reflection main.cpp GetTypeName.h Reflection.h)
+add_executable(Reflection main.cpp GetTypeName.h Reflection.h MemberFunction.h)

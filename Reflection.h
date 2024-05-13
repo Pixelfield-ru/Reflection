@@ -217,6 +217,8 @@ struct RuntimeMemberInfo
 
     using class_t = ObjT;
 
+    RuntimeMemberInfo() = default;
+
     const size_t index = 0;
 
     const bool is_const = false;
@@ -248,6 +250,16 @@ struct RuntimeMemberInfo
         return (T*) value;
     }
 
+    bool operator==(const RuntimeMemberInfo& other) noexcept
+    {
+        return index == other.index;
+    }
+
+    bool operator!=(const RuntimeMemberInfo& other) noexcept
+    {
+        return !(*this == other);
+    }
+
 private:
     void* value = nullptr;
 
@@ -264,6 +276,8 @@ private:
             unmangled_name(unmangledName),
             value(val) { }
 };
+
+static const auto null_member = RuntimeMemberInfo<void>();
 
 template<class ClassT, class MemberT, size_t Idx>
 struct MemberInfo
@@ -487,6 +501,19 @@ struct RuntimeMetaInfo
     using meta_info_t = MetaInfo<ClsT>;
 
     std::vector<RuntimeMemberInfo<ClsT>> members;
+
+    RuntimeMemberInfo<ClsT>* findMember(std::string_view name) noexcept
+    {
+        for(auto& member : members)
+        {
+            if(member.unmangled_name == name)
+            {
+                return &member;
+            }
+        }
+
+        return nullptr;
+    }
 };
 
 template<class ClsT>
