@@ -299,7 +299,7 @@ struct MemberInfo
 
     MemberT& value = (MemberT&) global_any;
 
-    constexpr RuntimeMemberInfo<class_t> asRuntime() noexcept
+    constexpr RuntimeMemberInfo<class_t> asRuntime() const noexcept
     {
         return RuntimeMemberInfo<class_t>(
                 index,
@@ -530,18 +530,18 @@ struct MetaInfo
     as_members_tuple_t members;
 
     template<size_t Idx>
-    constexpr auto& get() noexcept
+    constexpr auto& get() const noexcept
     {
         return std::get<Idx>(members);
     }
 
     template<typename Func>
-    constexpr void iterateThroughMembers(const Func& func)
+    constexpr void iterateThroughMembers(const Func& func) const
     {
         iterateThroughMembersImpl<Func, 0>(func);
     }
 
-    auto asRuntime() noexcept
+    auto asRuntime() const noexcept
     {
         RuntimeMetaInfo<class_t> runtimeMetaInfo;
 
@@ -554,7 +554,7 @@ struct MetaInfo
 
 private:
     template<typename Func, size_t CurIdx>
-    void iterateThroughMembersImpl(const Func& func)
+    void iterateThroughMembersImpl(const Func& func) const
     {
         if constexpr(CurIdx == members_count)
         {

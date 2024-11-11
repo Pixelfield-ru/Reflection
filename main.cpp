@@ -47,7 +47,7 @@ private:
         std::cout << str << std::endl;
     }
 
-    member_func_t<&AggregateStruct3::fun> function = bindFunction<&AggregateStruct3::fun>(this);
+    member_func_t<&AggregateStruct3::fun> functionewrwr = bindFunction<&AggregateStruct3::fun>(this);
 
 public:
     // custom-provided info about struct
@@ -57,35 +57,38 @@ public:
                 &AggregateStruct3::a,
                 &AggregateStruct3::m_superMember,
                 &AggregateStruct3::m_megaMember,
-                &AggregateStruct3::function
+                &AggregateStruct3::functionewrwr
         );
     };
 };
 
 int main()
 {
-    AggregateStruct3 s3;
+    static constexpr AggregateStruct s3 { };
 
     // compiletime meta
-    auto meta = makeMetaInfo(s3);
+    constexpr auto meta = makeMetaInfo(s3);
     // runtime meta
     auto runtimeMeta = meta.asRuntime();
 
-    runtimeMeta.findMember("m_megaMember")->setValue<std::string>("changed by runtime reflection");
+    // runtimeMeta.findMember("m_megaMember")->setValue<std::string>("changed by runtime reflection");
 
-    std::cout << "isconst: " << runtimeMeta.members[3].is_const << std::endl;
+    std::cout << "isconst: " << runtimeMeta.members[1].is_const << std::endl;
 
-    auto& memberInfo = meta.get<3>();
+    auto& memberInfo = meta.get<0>();
 
-    memberInfo.value("hello from compile-time reflected function");
+    // memberInfo.value("hello from compile-time reflected function");
+    // memberInfo.value = 2;
 
-    auto* foundMember = runtimeMeta.findMember("function");
-    (*foundMember->getValue<MemberFunction<void(const std::string&)>>())("hello from runtime reflected function");
+    runtimeMeta.members[0].setValue(6);
+
+    /*auto* foundMember = runtimeMeta.findMember("functionewrwr");
+    (*foundMember->getValue<MemberFunction<void(const std::string&)>>())("hello from runtime reflected function");*/
 
     std::cout <<
-    "\tmember type name: " << memberInfo.unmangled_type_name << ",\n" <<
+    "\tmember type name: " << memberInfo.unmangled_name << ",\n" <<
     "\tindex in class: " << memberInfo.index << ",\n" <<
-    // "\tvalue: " << memberInfo.value << ",\n" <<
+    "\tvalue: " << memberInfo.value << ",\n" <<
     "\tis const: " << memberInfo.is_const << ",\n" <<
     "\tis volatile: " << memberInfo.is_volatile << ",\n" <<
     "\tis pointer: " << memberInfo.is_pointer << ",\n" <<
