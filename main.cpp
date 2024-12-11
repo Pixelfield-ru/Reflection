@@ -63,22 +63,6 @@ public:
     };
 };
 
-constexpr bool strings_equal(char const * a, char const * b) {
-    return std::string_view(a)==b;
-}
-
-consteval bool str(std::string_view a, std::string_view b)
-{
-    if(a == b)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 enum class MyEnum
 {
     VALUE0,
@@ -88,21 +72,13 @@ enum class MyEnum
 };
 
 template<typename T>
-struct ABC
-{
-    constexpr ABC(T t)
-    {
-        val = t;
-    }
+using get_class_meta = std::remove_reference_t<decltype(makeMetaInfo<const T>(T { }))>;
 
-    virtual void d()
-    {
+template<size_t Idx, typename ClassT>
+using get_class_member = std::tuple_element_t<Idx, typename get_class_meta<ClassT>::as_members_tuple_t>;
 
-    }
-
-// private:
-    T val;
-};
+template<basic_constexpr_string Str, typename ClassT>
+using get_class_member_by_name = std::remove_reference_t<decltype(makeMetaInfo<const ClassT>(ClassT { }).template getByName<Str>())>;
 
 int main()
 {
@@ -116,6 +92,13 @@ int main()
     meta.iterateThroughMembers([](auto memberInfo) {
         std::cout << memberInfo.unmangled_name << std::endl;
     });
+
+    std::cout << get_class_member_by_name<"m_member", AggregateStruct>::unmangled_type_name << std::endl;
+
+    using meta0 = get_class_meta<AggregateStruct>;
+    // using meta1 = get_class_member_by_name<"dfsdf", AggregateStruct>;
+
+    // std::cout << meta1::unmangled_type_name << std::endl;
 
     if constexpr(std::remove_reference_t<decltype(makeMetaInfo<const AggregateStruct>(AggregateStruct { }).template get<2>())>::unmangled_name == "b")
     {
@@ -143,12 +126,6 @@ int main()
 
         }
     });*/
-
-    // std::cout << getEnumMembersCount<MyEnum>() << std::endl;
-
-    //std::cout << enumSize<MyEnum>() << std::endl;
-    // std::cout << getEnumMembersCount<MyEnum>() << std::endl;
-    // std::cout << getEnumMembersCount<MyEnum>() << std::endl;
 
     // std::cout << std::remove_reference_t<decltype(makeMetaInfo<const AggregateStruct>(AggregateStruct { }).template get<0>())>::unmangled_name << std::endl;
 
