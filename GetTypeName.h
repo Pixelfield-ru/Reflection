@@ -61,7 +61,7 @@ consteval std::string_view getMangledTypeName() noexcept
 }
 
 template<typename T>
-consteval std::string_view getUnMangledTypeName() noexcept
+consteval std::string_view getDemangledTypeName() noexcept
 {
     std::string_view str = GENERATOR_PRETTY_FUNCTION;
 
@@ -73,7 +73,7 @@ consteval std::string_view getUnMangledTypeName() noexcept
 }
 
 template<auto V>
-consteval std::string_view getUnMangledValueName() noexcept
+consteval std::string_view getDemangledValueName() noexcept
 {
     std::string_view str = GENERATOR_PRETTY_FUNCTION;
 
@@ -128,7 +128,7 @@ constexpr std::string_view getMemberMangledName = getMangledTypeName<getMemberPt
 #endif
 
 template <auto N, class T>
-consteval std::string_view getMemberUnMangledName()
+consteval std::string_view getMemberDemangledName()
 {
     std::string_view mangledName = getMemberMangledName<N, T>;
 

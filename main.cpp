@@ -5,158 +5,240 @@
 #include "Reflection.h"
 #include "MemberFunction.h"
 
-struct AggregateStruct
+struct AggregateStruct0
 {
-    int a = 0;
-    const float m_member = 4;
-    std::string b = "";
+    int m_myInt = 0;
+    const float m_myFloat = 4;
 };
 
-struct AggregateStruct2
-{
-private:
-    int a = 3;
-    float m_megaSuperMember = 5.65f;
-    std::string c = "val";
-
-    void fun()
-    {
-
-    }
-
-public:
-    // custom-provided info about struct
-    struct info
-    {
-        static constexpr auto value = std::tuple(
-                &AggregateStruct2::a,
-                &AggregateStruct2::m_megaSuperMember,
-                &AggregateStruct2::c
-        );
-    };
-};
-
-struct AggregateStruct3
+struct AggregateStruct1
 {
 private:
     int a = 3;
     const float m_superMember = 3.14f;
     std::string m_megaMember = "val";
 
-    void fun(const std::string& str)
+    void func(const std::string& str)
     {
         std::cout << str << std::endl;
     }
 
-    member_func_t<&AggregateStruct3::fun> functionewrwr = bindFunction<&AggregateStruct3::fun>(this);
+    member_func_t<&AggregateStruct1::func> m_myFunction = bindFunction<&AggregateStruct1::func>(this);
 
 public:
     // custom-provided info about struct
     struct info
     {
         static constexpr auto value = std::tuple(
-                &AggregateStruct3::a,
-                &AggregateStruct3::m_superMember,
-                &AggregateStruct3::m_megaMember,
-                &AggregateStruct3::functionewrwr
+                &AggregateStruct1::a,
+                &AggregateStruct1::m_superMember,
+                &AggregateStruct1::m_megaMember,
+                &AggregateStruct1::m_myFunction
         );
     };
 };
 
 enum class MyEnum
 {
-    VALUE0,
-    VALUE1,
-    VALUE2,
-    VALUE3
+    VALUE0 = 10,
+    VALUE1 = 15,
+    VALUE2 = 20,
+    VALUE3 = 21
 };
 
 template<typename T>
-using get_class_meta = std::remove_reference_t<decltype(makeMetaInfo<const T>(T { }))>;
+using get_class_meta_as_type = std::remove_reference_t<decltype(makeMetaInfo<const T>(T { }))>;
 
 template<size_t Idx, typename ClassT>
-using get_class_member = std::tuple_element_t<Idx, typename get_class_meta<ClassT>::as_members_tuple_t>;
+using get_class_member = std::tuple_element_t<Idx, typename get_class_meta_as_type<ClassT>::as_members_tuple_t>;
 
 template<basic_constexpr_string Str, typename ClassT>
 using get_class_member_by_name = std::remove_reference_t<decltype(makeMetaInfo<const ClassT>(ClassT { }).template getByName<Str>())>;
 
-int main()
+void testCompileTimeMeta_IterateCompileTimeObject()
 {
-    static constexpr AggregateStruct s3 { };
+    std::cout << "--------------------- testCompileTimeMeta_CompileTimeObject" << std::endl;
 
-    // compiletime meta
-    constexpr auto meta = makeMetaInfo(s3);
-    // runtime meta
-    auto runtimeMeta = meta.asRuntime();
+    static constexpr AggregateStruct0 myStruct0 { };
+
+    static constexpr auto meta = makeMetaInfo(myStruct0);
 
     meta.iterateThroughMembers([](auto memberInfo) {
-        std::cout << memberInfo.unmangled_name << std::endl;
+        std::cout << std::format(
+            "member: index: {}, name: '{}', typename: '{}', value: '{}', is const: {}, is volatile: {}, is pointer: {}, is reference: {}",
+            memberInfo.index, memberInfo.demangled_name, memberInfo.demangled_type_name, memberInfo.value,
+            memberInfo.is_const, memberInfo.is_volatile, memberInfo.is_pointer, memberInfo.is_reference) << std::endl;
     });
+}
 
-    std::cout << get_class_member_by_name<"m_member", AggregateStruct>::unmangled_type_name << std::endl;
+void testCompileTimeMeta_IterateRuntimeObject()
+{
+    std::cout << "--------------------- testCompileTimeMeta_RuntimeObject" << std::endl;
 
-    using meta0 = get_class_meta<AggregateStruct>;
-    // using meta1 = get_class_member_by_name<"dfsdf", AggregateStruct>;
+    AggregateStruct0 myStruct0 { };
 
-    // std::cout << meta1::unmangled_type_name << std::endl;
+    auto meta = makeMetaInfo(myStruct0);
+    // meta.getByName<"m_myInt">().value = 10;
 
-    if constexpr(std::remove_reference_t<decltype(makeMetaInfo<const AggregateStruct>(AggregateStruct { }).template get<2>())>::unmangled_name == "b")
-    {
-        std::cout << "AAAABBBB" << std::endl;
-    }
+    meta.iterateThroughMembers([](auto memberInfo) {
+        std::cout << std::format(
+            "member: index: {}, name: '{}', typename: '{}', value: '{}', is const: {}, is volatile: {}, is pointer: {}, is reference: {}",
+            memberInfo.index, memberInfo.demangled_name, memberInfo.demangled_type_name, memberInfo.value,
+            memberInfo.is_const, memberInfo.is_volatile, memberInfo.is_pointer, memberInfo.is_reference) << std::endl;
+    });
+}
 
-    /*if constexpr(getUnMangledValueName<enum_reflect::getEnumMembers<MyEnum>()[3]>() == "MyEnum::VALUE2")
-    {
-        std::cout << "AAAABBBBcccccc" << std::endl;
-    }*/
+void testCompileTimeMeta_IterateRuntimeObjectWithCustomInfo()
+{
+    std::cout << "--------------------- testCompileTimeMeta_RuntimeObjectWithCustomInfo" << std::endl;
 
-    constexpr auto enumMeta = enum_reflect::getEnumMembersInfo<MyEnum>();
+    AggregateStruct1 myStruct1 { };
+
+    auto meta = makeMetaInfo(myStruct1);
+    // meta.getByName<"m_megaMember">().value = "hello from introspection";
+
+    meta.iterateThroughMembers([](auto memberInfo) {
+        // skipping function =)
+        if constexpr(decltype(memberInfo)::index != 3)
+        {
+            std::cout << std::format(
+                "member: index: {}, name: '{}', typename: '{}', value: '{}', is const: {}, is volatile: {}, is pointer: {}, is reference: {}",
+                memberInfo.index, memberInfo.demangled_name, memberInfo.demangled_type_name, memberInfo.value,
+                memberInfo.is_const, memberInfo.is_volatile, memberInfo.is_pointer, memberInfo.is_reference) << std::endl;
+        }
+    });
+}
+
+void testCompileTimeMeta_GetSetValueByName()
+{
+    std::cout << "--------------------- testCompileTimeMeta_GetSetValueByName" << std::endl;
+
+    AggregateStruct0 myStruct0 { };
+
+    auto meta = makeMetaInfo(myStruct0);
+
+    std::cout << "setting m_myInt value to '8'..." << std::endl;
+    meta.getByName<"m_myInt">().value = 8;
+    std::cout << "m_myInt value: " << meta.getByName<"m_myInt">().value << std::endl;
+}
+
+void testCompileTimeMeta_GetSetValueByIndex()
+{
+    std::cout << "--------------------- testCompileTimeMeta_GetSetValueByIndex" << std::endl;
+
+    AggregateStruct0 myStruct0 { };
+
+    auto meta = makeMetaInfo(myStruct0);
+
+    std::cout << "setting member with index 0 ('m_myInt') value to '8'..." << std::endl;
+    meta.get<0>().value = 8;
+    std::cout << "m_myInt value: " << meta.get<0>().value << std::endl;
+}
+
+void testCompileTimeMeta_FunctionCall()
+{
+    std::cout << "--------------------- testCompileTimeMeta_FunctionCall" << std::endl;
+
+    AggregateStruct1 myStruct1 { };
+
+    auto meta = makeMetaInfo(myStruct1);
+    meta.getByName<"m_myFunction">().value("hello from introspection");
+}
+
+
+// ==================================================================
+
+void testRunTimeMeta_GetSetValueByName()
+{
+    std::cout << "--------------------- testRunTimeMeta_GetSetValueByName" << std::endl;
+
+    AggregateStruct0 myStruct0 { };
+
+    auto meta = makeMetaInfo(myStruct0).asRuntime();
+
+    std::cout << "setting m_myInt value to '8'..." << std::endl;
+    meta.findMember("m_myInt")->setValue<int>(8);
+    std::cout << "m_myInt value: " << *meta.findMember("m_myInt")->getValue<int>() << std::endl;
+}
+
+void testRunTimeMeta_GetSetValueByIndex()
+{
+    std::cout << "--------------------- testRunTimeMeta_GetSetValueByIndex" << std::endl;
+
+    AggregateStruct0 myStruct0 { };
+
+    auto meta = makeMetaInfo(myStruct0).asRuntime();
+
+    std::cout << "setting member with index 0 ('m_myInt') value to '8'..." << std::endl;
+    meta.members[0].setValue<int>(8);
+    std::cout << "m_myInt value: " << *meta.members[0].getValue<int>() << std::endl;
+}
+
+void testRunTimeMeta_FunctionCall()
+{
+    std::cout << "--------------------- testRunTimeMeta_FunctionCall" << std::endl;
+
+    AggregateStruct1 myStruct1 { };
+
+    auto meta = makeMetaInfo(myStruct1).asRuntime();
+    (*meta.findMember("m_myFunction")->getValue<MemberFunction<void(const std::string&)>>())("hello from introspection");
+}
+
+void testEnumReflect_Iterate()
+{
+    std::cout << "--------------------- testEnumReflect_Iterate" << std::endl;
 
     enum_reflect::iterateThroughEnumMembers<MyEnum>([](auto memberInfo) {
-        std::cout << memberInfo.unmangled_name << std::endl;
+        std::cout << std::format("enum member index: {}, value: '{}', name: '{}'", memberInfo.index, std::to_underlying(memberInfo.value), memberInfo.demangled_name) << std::endl;
     });
+}
 
-    std::cout << "Runtime name: " << enum_reflect::generateRuntimeNamesMarkup<MyEnum>()[2] << std::endl;
+void testEnumReflect_Get0Member()
+{
+    std::cout << "--------------------- testEnumReflect_Get0Member" << std::endl;
 
-    /*enum_reflect::iterateThroughEnumMembers<MyEnum>([](auto memberValue) {
-        using t = std::underlying_type_t<decltype(memberValue)>;
-        // std::cout << static_cast<t>(memberValue) << std::endl;
-        if constexpr(memberValue == MyEnum::VALUE0)
-        {
+    static constexpr auto meta = enum_reflect::getEnumMembersInfo<MyEnum>();
+    static constexpr auto firstMember = std::get<0>(meta);
 
-        }
-    });*/
+    std::cout << std::format("enum member index: {}, value: '{}', name: '{}'", firstMember.index, std::to_underlying(firstMember.value), firstMember.demangled_name) << std::endl;
+}
 
-    // std::cout << std::remove_reference_t<decltype(makeMetaInfo<const AggregateStruct>(AggregateStruct { }).template get<0>())>::unmangled_name << std::endl;
+void testEnumReflect_Count()
+{
+    std::cout << "--------------------- testEnumReflect_Count" << std::endl;
 
-    // static_assert(str("abc", "abc"), "strings are equal");
+    static constexpr size_t count = enum_reflect::getEnumMembersCount<MyEnum>();
 
-    // auto& mem = meta.getByName("a");
+    std::cout << "enum values count: " << count << std::endl;
+}
 
-    // runtimeMeta.findMember("m_megaMember")->setValue<std::string>("changed by runtime reflection");
+int main()
+{
+    testCompileTimeMeta_IterateCompileTimeObject();
+    testCompileTimeMeta_IterateRuntimeObject();
+    testCompileTimeMeta_IterateRuntimeObjectWithCustomInfo();
+    testCompileTimeMeta_GetSetValueByName();
+    testCompileTimeMeta_GetSetValueByIndex();
+    testCompileTimeMeta_FunctionCall();
+    testRunTimeMeta_GetSetValueByName();
+    testRunTimeMeta_GetSetValueByIndex();
+    testRunTimeMeta_FunctionCall();
 
-    std::cout << "isconst: " << runtimeMeta.members[1].is_const << std::endl;
+    std::cout << "======================================================" << std::endl;
 
-    auto& memberInfo = meta.get<0>();
+    static constexpr auto m_myFloatMember_name = get_class_member_by_name<"m_myFloat", AggregateStruct0>::demangled_name;
 
-    // memberInfo.value("hello from compile-time reflected function");
-    // memberInfo.value = 2;
+    std::cout << "m_myFloatMember_name: " << m_myFloatMember_name << std::endl;
 
-    runtimeMeta.members[0].setValue(6);
+    using meta_as_type = get_class_meta_as_type<AggregateStruct0>;
 
-    /*auto* foundMember = runtimeMeta.findMember("functionewrwr");
-    (*foundMember->getValue<MemberFunction<void(const std::string&)>>())("hello from runtime reflected function");*/
+    std::cout << "member with index 0 from meta as type: " << std::remove_reference_t<decltype(meta_as_type { }.get<0>())>::demangled_name << std::endl;
 
-    std::cout <<
-    "\tmember type name: " << memberInfo.unmangled_name << ",\n" <<
-    "\tindex in class: " << memberInfo.index << ",\n" <<
-    "\tvalue: " << memberInfo.value << ",\n" <<
-    "\tis const: " << memberInfo.is_const << ",\n" <<
-    "\tis volatile: " << memberInfo.is_volatile << ",\n" <<
-    "\tis pointer: " << memberInfo.is_pointer << ",\n" <<
-    "\tis reference: " << memberInfo.is_reference << ",\n" <<
-    "\tmember name: " << memberInfo.unmangled_name <<
-    std::endl;
+    std::cout << "======================================================" << std::endl;
+
+    testEnumReflect_Iterate();
+    testEnumReflect_Get0Member();
+    testEnumReflect_Count();
 
     return 0;
 }

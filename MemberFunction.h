@@ -47,7 +47,7 @@ struct detail_member_function_traits<Return(Object::*)(Args...)>
     using get_type = extract<Idx, Args...>;
 
     template<size_t Idx>
-    using get_type_t = extract<Idx, Args...>::type;
+    using get_type_t = typename extract<Idx, Args...>::type;
 };
 
 template<typename>
@@ -96,6 +96,6 @@ struct member_func_traits
 };
 
 template<auto Ptr>
-using member_func_t = member_func_traits<Ptr>::func_t;
+using member_func_t = typename member_func_traits<Ptr>::func_t;
 
 #endif //REFLECTION_MEMBERFUNCTION_H

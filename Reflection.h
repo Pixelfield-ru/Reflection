@@ -14,7 +14,7 @@
 /*
 MIT License
 
-Copyright (c) 2023 Pixelfield
+Copyright (c) 2025 Pixelfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -122,15 +122,17 @@ using constexpr_string = basic_constexpr_string<Size, char>;
 
 // ====================================================================
 
-template<class T, template <class...> class Template>
+template<typename T, template <typename...> typename Template>
 struct is_specialization : std::false_type {};
 
-template <template <class...> class Template, class... Args>
+template <template <typename...> typename Template, typename... Args>
 struct is_specialization<Template<Args...>, Template> : std::true_type {};
 
 struct Any final
 {
-#if defined(__clang__)
+    template<typename T>
+    constexpr operator T();
+/*#if defined(__clang__)
     #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
          template <class T>
@@ -157,12 +159,12 @@ struct Any final
 #pragma GCC diagnostic pop
 #endif
 
-    [[maybe_unused]] constexpr operator std::string_view() { return {}; }
+    [[maybe_unused]] constexpr operator std::string_view() { return {}; }*/
 };
 
 static Any global_any;
 
-template <class T, class... Args>
+template <typename T, typename... Args>
 requires(std::is_aggregate_v<std::remove_cvref_t<T>>)
 inline constexpr auto count_members = []
 {
@@ -183,7 +185,7 @@ inline constexpr auto count_members = []
     }
 }();
 
-template<class ClsT, size_t MembersCnt = count_members<ClsT>>
+template<typename ClsT, size_t MembersCnt = count_members<ClsT>>
 requires(MembersCnt <= 20)
 constexpr decltype(auto) toTuple(ClsT&& obj) noexcept
 {
@@ -295,10 +297,10 @@ constexpr decltype(auto) toTuple(ClsT&& obj) noexcept
 
 #include "GetTypeName.h"
 
-template<class ObjT>
+template<typename ObjT>
 struct RuntimeMemberInfo
 {
-    template<class ClassT, class MemberT, size_t Idx>
+    template<typename ClassT, typename MemberT, size_t Idx>
     friend struct MemberInfo;
 
     using class_t = ObjT;
@@ -313,9 +315,9 @@ struct RuntimeMemberInfo
     const bool is_reference = false;
 
     const std::string_view mangled_type_name = std::string_view("not_provided");
-    const std::string_view unmangled_type_name = std::string_view("not_provided");
+    const std::string_view demangled_type_name = std::string_view("not_provided");
     const std::string_view mangled_name = std::string_view("not_provided");
-    const std::string_view unmangled_name = std::string_view("not_provided");
+    const std::string_view demangled_name = std::string_view("not_provided");
 
     template<typename T>
     void setValue(const T& val) noexcept
@@ -333,7 +335,7 @@ struct RuntimeMemberInfo
     template<typename T>
     const T* getValue() const noexcept
     {
-        return (T*) value;
+        return static_cast<T*>(value);
     }
 
     bool operator==(const RuntimeMemberInfo& other) noexcept
@@ -351,21 +353,21 @@ private:
 
     RuntimeMemberInfo(size_t idx, bool isConst, bool isVolatile, bool isPtr, bool isRef,
                       std::string_view mangledTypeName,
-                      std::string_view unmangledTypeName,
+                      std::string_view demangledTypeName,
                       std::string_view mangledName,
-                      std::string_view unmangledName,
+                      std::string_view demangledName,
                       void* val) noexcept :
             index(idx), is_const(isConst), is_volatile(isVolatile), is_pointer(isPtr), is_reference(isRef),
             mangled_type_name(mangledTypeName),
-            unmangled_type_name(unmangledTypeName),
+            demangled_type_name(demangledTypeName),
             mangled_name(mangledName),
-            unmangled_name(unmangledName),
+            demangled_name(demangledName),
             value(val) { }
 };
 
 static const auto null_member = RuntimeMemberInfo<void>();
 
-template<class ClassT, class MemberT, size_t Idx>
+template<typename ClassT, typename MemberT, size_t Idx>
 struct MemberInfo
 {
     using member_t = MemberT;
@@ -379,9 +381,9 @@ struct MemberInfo
     static constexpr bool is_reference = std::is_reference_v<member_t>;
 
     static constexpr auto mangled_type_name = getMangledTypeName<member_t>();
-    static constexpr auto unmangled_type_name = getUnMangledTypeName<member_t>();
+    static constexpr auto demangled_type_name = getDemangledTypeName<member_t>();
     static constexpr auto mangled_name = getMemberMangledName<Idx, std::remove_pointer_t<std::remove_reference_t<class_t>>>;
-    static constexpr auto unmangled_name = getMemberUnMangledName<Idx, std::remove_pointer_t<std::remove_reference_t<class_t>>>();
+    static constexpr auto demangled_name = getMemberDemangledName<Idx, std::remove_pointer_t<std::remove_reference_t<class_t>>>();
 
     MemberT& value = (MemberT&) global_any;
 
@@ -395,9 +397,9 @@ struct MemberInfo
                 is_reference,
 
                 mangled_type_name,
-                unmangled_type_name,
+                demangled_type_name,
                 mangled_name,
-                unmangled_name,
+                demangled_name,
 
                 (void*) &value
         );
@@ -455,28 +457,28 @@ constexpr auto getMemberInfo(ClsT& obj) noexcept
 // ==================================================================
 // ==================================================================
 
-template<class ClsT, bool>
+template<typename ClsT, bool>
 struct RawMembersTupleTImpl;
 
-template<class ClsT>
+template<typename ClsT>
 struct RawMembersTupleTImpl<ClsT, true>
 {
     using tuple_t = std::remove_const_t<decltype(std::remove_pointer_t<std::remove_reference_t<ClsT>>::info::value)>;
 };
 
-template<class ClsT>
+template<typename ClsT>
 struct RawMembersTupleTImpl<ClsT, false>
 {
     using tuple_t = std::remove_const_t<decltype(toTuple(not_const_external<std::remove_pointer_t<std::remove_reference_t<ClsT>>>))>;
 };
 
-template<class ClsT>
+template<typename ClsT>
 using raw_members_tuple_type = RawMembersTupleTImpl<ClsT, requires { std::remove_pointer_t<std::remove_reference_t<ClsT>>::info::value; }>;
 
-template<class ClsT, size_t CurIdx, size_t MaxIdx, class... Infos>
+template<typename ClsT, size_t CurIdx, size_t MaxIdx, typename... Infos>
 struct MembersTupleTImpl;
 
-template<class ClsT, size_t MaxIdx, class... Infos>
+template<typename ClsT, size_t MaxIdx, typename... Infos>
 struct MembersTupleTImpl<ClsT, MaxIdx, MaxIdx, Infos...>
 {
     using tuple_t = decltype(std::tuple<
@@ -485,47 +487,47 @@ struct MembersTupleTImpl<ClsT, MaxIdx, MaxIdx, Infos...>
     >());
 };
 
-template<class ClsT, size_t CurIdx, size_t MaxIdx, class... Infos>
+template<typename ClsT, size_t CurIdx, size_t MaxIdx, typename... Infos>
 struct MembersTupleTImpl
 {
-    using tuple_t = MembersTupleTImpl<ClsT, CurIdx + 1, std::tuple_size_v<typename raw_members_tuple_type<ClsT>::tuple_t>,
+    using tuple_t = typename MembersTupleTImpl<ClsT, CurIdx + 1, std::tuple_size_v<typename raw_members_tuple_type<ClsT>::tuple_t>,
             Infos...,
             decltype(getMemberInfo<CurIdx, ClsT>(not_const_external<ClsT>))>::tuple_t;
 };
 
-template<class ClsT>
+template<typename ClsT>
 using members_tuple = MembersTupleTImpl<ClsT, 0, std::tuple_size_v<typename raw_members_tuple_type<ClsT>::tuple_t>>;
 
 // ==================================================================
 // ==================================================================
 // ==================================================================
 
-template<class ClsT, bool>
+template<typename ClsT, bool>
 struct MembersInfoTupleTImpl;
 
-template<class ClsT>
+template<typename ClsT>
 struct MembersInfoTupleTImpl<ClsT, true>
 {
-    using tuple_t = members_tuple<ClsT>::tuple_t;
+    using tuple_t = typename members_tuple<ClsT>::tuple_t;
 };
 
-template<class ClsT>
+template<typename ClsT>
 struct MembersInfoTupleTImpl<ClsT, false>
 {
-    using tuple_t = members_tuple<ClsT>::tuple_t;
+    using tuple_t = typename members_tuple<ClsT>::tuple_t;
 };
 
-template<class ClsT>
+template<typename ClsT>
 using members_info_tuple_type = MembersInfoTupleTImpl<ClsT, requires { ClsT::info::value; }>;
 
 // ==================================================================
 // ==================================================================
 // ==================================================================
 
-template<class>
+template<typename>
 struct MetaInfo;
 
-template<class ClsT, size_t... Indices>
+template<typename ClsT, size_t... Indices>
 constexpr auto makeMetaInfoImpl(ClsT& obj, std::index_sequence<Indices...>) noexcept
 {
     using V = std::remove_pointer_t<std::remove_reference_t<ClsT>>;
@@ -574,13 +576,13 @@ constexpr auto makeMetaInfoImpl(ClsT& obj, std::index_sequence<Indices...>) noex
     }
 }
 
-template<class ClsT>
+template<typename ClsT>
 constexpr auto makeMetaInfo(ClsT& obj) noexcept
 {
     return makeMetaInfoImpl(obj, std::make_index_sequence<std::tuple_size_v<typename raw_members_tuple_type<ClsT>::tuple_t>>());
 }
 
-template<class ClsT>
+template<typename ClsT>
 struct RuntimeMetaInfo
 {
     using class_t = ClsT;
@@ -592,7 +594,7 @@ struct RuntimeMetaInfo
     {
         for(auto& member : members)
         {
-            if(member.unmangled_name == name)
+            if(member.demangled_name == name)
             {
                 return &member;
             }
@@ -605,12 +607,12 @@ struct RuntimeMetaInfo
 template<auto>
 struct always_false_obj : std::false_type { };
 
-template<class ClsT>
+template<typename ClsT>
 struct MetaInfo
 {
     using class_t = ClsT;
-    using as_tuple_t = raw_members_tuple_type<ClsT>::tuple_t;
-    using as_members_tuple_t = members_info_tuple_type<ClsT>::tuple_t;
+    using as_tuple_t = typename raw_members_tuple_type<ClsT>::tuple_t;
+    using as_members_tuple_t = typename members_info_tuple_type<ClsT>::tuple_t;
 
     static constexpr size_t members_count = std::tuple_size_v<as_members_tuple_t>;
 
@@ -657,7 +659,7 @@ private:
         }
         else
         {
-            if constexpr(Name == std::remove_reference_t<decltype(get<MemberIdx>())>::unmangled_name)
+            if constexpr(Name == std::remove_reference_t<decltype(get<MemberIdx>())>::demangled_name)
             {
                 return get<MemberIdx>();
             }
@@ -695,7 +697,7 @@ struct enum_reflect
 
         static constexpr enum_t value = EnumV;
         static constexpr size_t index = Index;
-        static constexpr std::string_view unmangled_name = getUnMangledValueName<EnumV>();
+        static constexpr std::string_view demangled_name = getDemangledValueName<EnumV>();
         static constexpr std::string_view mangled_name = getMangledTypeName<EnumV>();
     };
 
@@ -746,7 +748,7 @@ struct enum_reflect
 
             size_t idx = 0;
             iterateThroughEnumMembers<EnumT>([&markup, &idx](auto memberInfo) {
-                markup[idx] = memberInfo.unmangled_name;
+                markup[idx] = memberInfo.demangled_name;
                 ++idx;
             });
 
@@ -796,7 +798,7 @@ private:
         }
         else
         {
-            if constexpr (getUnMangledValueName<(EnumT) EnumIdx>().contains("("))
+            if constexpr (getDemangledValueName<(EnumT) EnumIdx>().contains("("))
             {
                 return getEnumMembersImpl<EnumT, ValidCount, EnumIdx + 1>(lastArr);
             }
