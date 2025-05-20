@@ -5,13 +5,14 @@
 #include "Reflection.h"
 #include "MemberFunction.h"
 
-struct AggregateStruct0
+// aggregate
+struct MyStruct0
 {
     int m_myInt = 0;
     const float m_myFloat = 4;
 };
 
-struct AggregateStruct1
+struct MyStruct1
 {
 private:
     int a = 3;
@@ -23,17 +24,17 @@ private:
         std::cout << str << std::endl;
     }
 
-    member_func_t<&AggregateStruct1::func> m_myFunction = bindFunction<&AggregateStruct1::func>(this);
+    member_func_t<&MyStruct1::func> m_myFunction = bindFunction<&MyStruct1::func>(this);
 
 public:
     // custom-provided info about struct
     struct info
     {
         static constexpr auto value = std::tuple(
-                &AggregateStruct1::a,
-                &AggregateStruct1::m_superMember,
-                &AggregateStruct1::m_megaMember,
-                &AggregateStruct1::m_myFunction
+                &MyStruct1::a,
+                &MyStruct1::m_superMember,
+                &MyStruct1::m_megaMember,
+                &MyStruct1::m_myFunction
         );
     };
 };
@@ -59,7 +60,7 @@ void testCompileTimeMeta_IterateCompileTimeObject()
 {
     std::cout << "--------------------- testCompileTimeMeta_CompileTimeObject" << std::endl;
 
-    static constexpr AggregateStruct0 myStruct0 { };
+    static constexpr MyStruct0 myStruct0 { };
 
     static constexpr auto meta = makeMetaInfo(myStruct0);
 
@@ -75,7 +76,7 @@ void testCompileTimeMeta_IterateRuntimeObject()
 {
     std::cout << "--------------------- testCompileTimeMeta_RuntimeObject" << std::endl;
 
-    AggregateStruct0 myStruct0 { };
+    MyStruct0 myStruct0 { };
 
     auto meta = makeMetaInfo(myStruct0);
     // meta.getByName<"m_myInt">().value = 10;
@@ -92,7 +93,7 @@ void testCompileTimeMeta_IterateRuntimeObjectWithCustomInfo()
 {
     std::cout << "--------------------- testCompileTimeMeta_RuntimeObjectWithCustomInfo" << std::endl;
 
-    AggregateStruct1 myStruct1 { };
+    MyStruct1 myStruct1 { };
 
     auto meta = makeMetaInfo(myStruct1);
     // meta.getByName<"m_megaMember">().value = "hello from introspection";
@@ -113,7 +114,7 @@ void testCompileTimeMeta_GetSetValueByName()
 {
     std::cout << "--------------------- testCompileTimeMeta_GetSetValueByName" << std::endl;
 
-    AggregateStruct0 myStruct0 { };
+    MyStruct0 myStruct0 { };
 
     auto meta = makeMetaInfo(myStruct0);
 
@@ -126,7 +127,7 @@ void testCompileTimeMeta_GetSetValueByIndex()
 {
     std::cout << "--------------------- testCompileTimeMeta_GetSetValueByIndex" << std::endl;
 
-    AggregateStruct0 myStruct0 { };
+    MyStruct0 myStruct0 { };
 
     auto meta = makeMetaInfo(myStruct0);
 
@@ -139,7 +140,7 @@ void testCompileTimeMeta_FunctionCall()
 {
     std::cout << "--------------------- testCompileTimeMeta_FunctionCall" << std::endl;
 
-    AggregateStruct1 myStruct1 { };
+    MyStruct1 myStruct1 { };
 
     auto meta = makeMetaInfo(myStruct1);
     meta.getByName<"m_myFunction">().value("hello from introspection");
@@ -152,7 +153,7 @@ void testRunTimeMeta_GetSetValueByName()
 {
     std::cout << "--------------------- testRunTimeMeta_GetSetValueByName" << std::endl;
 
-    AggregateStruct0 myStruct0 { };
+    MyStruct0 myStruct0 { };
 
     auto meta = makeMetaInfo(myStruct0).asRuntime();
 
@@ -165,7 +166,7 @@ void testRunTimeMeta_GetSetValueByIndex()
 {
     std::cout << "--------------------- testRunTimeMeta_GetSetValueByIndex" << std::endl;
 
-    AggregateStruct0 myStruct0 { };
+    MyStruct0 myStruct0 { };
 
     auto meta = makeMetaInfo(myStruct0).asRuntime();
 
@@ -178,7 +179,7 @@ void testRunTimeMeta_FunctionCall()
 {
     std::cout << "--------------------- testRunTimeMeta_FunctionCall" << std::endl;
 
-    AggregateStruct1 myStruct1 { };
+    MyStruct1 myStruct1 { };
 
     auto meta = makeMetaInfo(myStruct1).asRuntime();
     (*meta.findMember("m_myFunction")->getValue<MemberFunction<void(const std::string&)>>())("hello from introspection");
@@ -226,11 +227,11 @@ int main()
 
     std::cout << "======================================================" << std::endl;
 
-    static constexpr auto m_myFloatMember_name = get_class_member_by_name<"m_myFloat", AggregateStruct0>::demangled_name;
+    static constexpr auto m_myFloatMember_name = get_class_member_by_name<"m_myFloat", MyStruct0>::demangled_name;
 
     std::cout << "m_myFloatMember_name: " << m_myFloatMember_name << std::endl;
 
-    using meta_as_type = get_class_meta_as_type<AggregateStruct0>;
+    using meta_as_type = get_class_meta_as_type<MyStruct0>;
 
     std::cout << "member with index 0 from meta as type: " << std::remove_reference_t<decltype(meta_as_type { }.get<0>())>::demangled_name << std::endl;
 
